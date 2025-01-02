@@ -4,9 +4,11 @@ import os
 import re
 from collections import defaultdict
 from datetime import datetime, timedelta
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024  # 1 MB limit
 
 # Simulated data stores (use a database for production)
 messages = []  # List of posted messages
@@ -45,6 +47,18 @@ def get_user_ip():
     global user_ip
     user_ip = request.remote_addr  # Get the user's IP address
     
+# Define the upload folder and allowed extensions
+UPLOAD_FOLDER = "static/uploads"
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Helper function to check allowed file extensions
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Ensure the upload folder exists
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 @app.route("/", methods=["GET", "POST"])
 def home():
     user_ip = request.remote_addr
@@ -53,10 +67,18 @@ def home():
     if user_ip not in usernames:
         return redirect(url_for('set_username'))
 
-    # Handle new messages
     if request.method == "POST":
         message = request.form.get("message")
-        if message:
+        uploaded_file = request.files.get("image")
+        image_url = None
+
+        # Handle image upload if an image is provided
+        if uploaded_file and allowed_file(uploaded_file.filename):
+            filename = secure_filename(uploaded_file.filename)
+            uploaded_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            image_url = filename  # Save the filename for later retrieval
+
+        if message or image_url:
             # Get mafia info from usernames structure
             mafia_name = usernames.get(user_ip, {}).get('mafia')
             mafia_info = None
@@ -66,28 +88,15 @@ def home():
                     'emoji': mafias.get(mafia_name, {}).get('emoji', '')
                 }
 
-            # Get the current timestamp
-            current_time = datetime.now()
-
-            # Clean up the user message log by removing messages older than 1 minute
-            user_message_log[user_ip] = [timestamp for timestamp in user_message_log[user_ip] if current_time - timestamp <= TIME_FRAME]
-
-            # Check if the user has exceeded the message limit
-            if len(user_message_log[user_ip]) >= MAX_MESSAGES_PER_MINUTE:
-                flash("You have reached the limit of 50 messages per minute.", "error")
-                return redirect(url_for("home"))
-
-            # Add the current timestamp to the user's message log
-            user_message_log[user_ip].append(current_time)
-
-            # Append the new message to the list with mafia info
+            # Append the new message to the list with image URL
             messages.append({
                 "id": len(messages) + 1,
                 "message": message,
                 "ip": user_ip,
-                "timestamp": current_time.strftime("%Y-%m-%d %H:%M:%S"),
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "username": usernames.get(user_ip, {}).get('username', "Anonymous"),
                 "mafia": mafia_info,  # Include mafia info in the message
+                "image_url": image_url,  # Include the image URL
             })
 
     return render_template("index.html", messages=messages, admin_ips=admin_ips)
