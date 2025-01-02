@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flask Message Board</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .container {
+            width: 80%;
+            margin: 0 auto;
+        }
+
+        .message {
+            border: 1px solid #ccc;
+            margin: 10px 0;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 5px;
+        }
+
+        .message-controls {
+            margin-top: 10px;
+        }
+
+        .message-time {
+            color: #888;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 8px 15px;
+            cursor: pointer;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .message-controls button {
+            margin-right: 10px;
+        }
+
+        .message-controls {
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .message p {
+            margin: 0;
+        }
+
+        .message-time {
+            font-style: italic;
+        }
+
+        .message .user-info {
+            font-weight: bold;
+        }
+
+        .user-setup-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .user-setup-link a {
+            text-decoration: none;
+            font-size: 18px;
+            color: #007bff;
+        }
+
+        .user-setup-link a:hover {
+            text-decoration: underline;
+        }
+
+        .flash-message {
+            background-color: #dff0d8;
+            color: #3c763d;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .flash-error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Message Board</h1>
+
+        <!-- Display flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div id="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message {% if category == 'error' %}flash-error{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Message posting form -->
+        <form method="POST">
+            <textarea name="message" placeholder="Enter your message" required></textarea><br><br>
+            <button type="submit">Post</button>
+        </form>
+
+        <!-- Display messages -->
+        <div id="messagesContainer">
+            {% for msg in messages %}
+                <div class="message">
+                    <!-- Display message with username and mafia info -->
+                    <p>
+                        <span class="user-info">
+                            {{ msg.username }}
+                            {% if msg.mafia %}
+                                <span style="font-weight: normal; font-size: 0.9em; color: #555;">
+                                    ({{ msg.mafia.emoji }} {{ msg.mafia.name }})
+                                </span>
+                            {% endif %}
+                        </span>: {{ msg.message }}
+                    </p>
+                    <p><small class="message-time">Posted by {{ msg.ip }} at {{ msg.timestamp }}</small></p>
+
+                    {% if request.remote_addr in admin_ips %}
+                        <!-- Admin controls for deleting or banning messages -->
+                        <div class="message-controls">
+                            <form action="/delete/{{ msg.id }}" method="post" style="display:inline;">
+                                <button type="submit">Delete</button>
+                            </form>
+                            <form action="/ban/{{ msg.id }}" method="post" style="display:inline;">
+                                <button type="submit">Ban</button>
+                            </form>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- User's username setup link if they haven't set a username -->
+        {% if request.remote_addr not in usernames %}
+            <div class="user-setup-link">
+                <p><a href="/set_username">Set your username</a></p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Inject admin_ips as JSON into JavaScript -->
+    <script>
+        // Pass the `admin_ips` list safely into JavaScript as a JSON object.
+        var adminIps = {{ admin_ips | tojson | safe }};
+        var currentUserIp = "{{ request.remote_addr }}";  // The user's IP address passed from Flask
+
+        // Function to fetch messages dynamically via AJAX
+        async function fetchMessages() {
+            const response = await fetch('/api/messages');
+            const messages = await response.json();
+            const messagesContainer = document.getElementById('messagesContainer');
+            messagesContainer.innerHTML = '';  // Clear current messages
+
+            // Append new messages
+            messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+
+                messageDiv.innerHTML = `
+                    <p><strong>${msg.username}
+                        ${msg.mafia ? `(<span style="font-weight: normal; font-size: 0.9em; color: #555;">${msg.mafia.emoji} ${msg.mafia.name}</span>)` : '' }
+                    </strong>: ${msg.message}</p>
+                    <p><small class="message-time">Posted by ${msg.ip} at ${msg.timestamp}</small></p>
+                `;
+
+                // Check if the current user is an admin and show controls
+                if (adminIps.includes(currentUserIp)) {
+                    const controlsDiv = document.createElement('div');
+                    controlsDiv.className = 'message-controls';
+                    controlsDiv.innerHTML = `
+                        <form action="/delete/${msg.id}" method="post" style="display:inline;">
+                            <button type="submit">Delete</button>
+                        </form>
+                        <form action="/ban/${msg.id}" method="post" style="display:inline;">
+                            <button type="submit">Ban</button>
+                        </form>
+                    `;
+                    messageDiv.appendChild(controlsDiv);
+                }
+
+                messagesContainer.appendChild(messageDiv);
+            });
+        }
+
+        // Call fetchMessages every 1.25 seconds to keep messages updated (optional)
+        setInterval(fetchMessages, 1250);
+        fetchMessages();
+    </script>
+</body>
+</html>

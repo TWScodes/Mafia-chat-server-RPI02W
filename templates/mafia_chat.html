@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mafias</title>
+    <style>
+        /* Add your custom styles here */
+        .mafia {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .mafia-header {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .mafia-members {
+            margin-top: 10px;
+        }
+        .join-button {
+            padding: 5px 10px;
+            cursor: pointer;
+            background-color: green;
+            color: white;
+            border: none;
+        }
+        .admin-controls {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .admin-controls button {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Active Mafias</h1>
+    
+    <div id="mafiasContainer">
+        {% for mafia_name, mafia in mafias.items() %}
+            <div class="mafia">
+                <div class="mafia-header">
+                    <span>{{ mafia['emoji'] }} {{ mafia_name }}</span>
+                </div>
+
+                <div class="mafia-members">
+                    <strong>Members:</strong>
+                    <ul>
+                        {% for member in mafia['members'] %}
+                            <li>{{ member }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                {% if user_ip in mafia['members'] %}
+                    <p>You are a member of this mafia.</p>
+                    <a href="{{ url_for('mafia_chat', mafia_name=mafia_name) }}">Go to Mafia Chat</a>
+                {% else %}
+                    <form action="{{ url_for('join_mafia', mafia_name=mafia_name) }}" method="post">
+                        <button class="join-button" type="submit">Join Mafia</button>
+                    </form>
+                {% endif %}
+                
+                <!-- Admin controls if the user is an admin -->
+                {% if user_ip in admin_ips %}
+                    <div class="admin-controls">
+                        <form action="{{ url_for('remove_mafia', mafia_name=mafia_name) }}" method="post">
+                            <button type="submit">Remove Mafia</button>
+                        </form>
+                        <form action="{{ url_for('add_member', mafia_name=mafia_name) }}" method="post">
+                            <button type="submit">Add Member</button>
+                        </form>
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+    <br>
+    <a href="{{ url_for('home') }}">Back to home</a>
+</body>
+</html>

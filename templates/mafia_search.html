@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active Mafias</title>
+</head>
+<body>
+    <h1>Active Mafias</h1>
+    <ul>
+        {% for mafia_name, mafia_details in results.items() %}
+            <li>
+                <strong>{{ mafia_name }}</strong><br>
+                <em>Leader:</em> {{ mafia_details['leader'] }}<br>
+                <em>Members:</em> {{ mafia_details['members'] | length }}<br>
+                <em>Title:</em> {{ mafia_details['title'] }}<br>
+                <em>Emoji:</em> {{ mafia_details['emoji'] }}<br>
+            </li>
+        {% else %}
+            <p>No active mafias found.</p>
+        {% endfor %}
+    </ul>
+</body>
+</html>

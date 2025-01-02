@@ -1,0 +1,34 @@
+<!-- mafia_members.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ mafia_name }} - Mafia</title>
+</head>
+<body>
+    <h1>{{ mafia_name }} - {{ mafia_title }}</h1>
+    <p><strong>Rank:</strong> {{ user_rank }}</p>
+    <p><strong>Emoji:</strong> {{ mafias[mafia_name]['emoji'] }}</p>
+
+    <h2>Members:</h2>
+    <ul>
+        {% for member_ip in mafias[mafia_name]['members'] %}
+            <li>{{ mafia_members[member_ip]['username'] if member_ip in mafia_members else member_ip }}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Pending Requests:</h2>
+    <ul>
+        {% for notification in mafia_notifications.get(mafia_name, []) %}
+            {% if notification.type == 'join_request' %}
+                <li>Join request from {{ mafia_members.get(notification.user_ip, {}).get('username', notification.user_ip) }}</li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+
+    <form action="{{ url_for('leave_mafia') }}" method="POST">
+        <button type="submit">Leave Mafia</button>
+    </form>
+</body>
+</html>

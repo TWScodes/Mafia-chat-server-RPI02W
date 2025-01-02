@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mafias</title>
+</head>
+<body>
+    <h1>Manage Mafias</h1>
+
+    <h2>Mafias</h2>
+    <ul>
+        {% for mafia_name, mafia in mafias.items() %}
+            <li>
+                {{ mafia.emoji }} {{ mafia_name }} ({{ mafia.title }})
+                <form action="/join_mafia/{{ mafia_name }}" method="POST">
+                    <button type="submit">Join</button>
+                </form>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <h2>Create a new mafia</h2>
+    <form action="/mafias" method="POST">
+        <input type="text" name="mafia_name" placeholder="Mafia name" required><br>
+        <input type="text" name="mafia_emoji" placeholder="Mafia emoji" required><br>
+        <input type="text" name="mafia_title" placeholder="Mafia title" required><br>
+        <button type="submit">Create Mafia</button>
+    </form>
+
+    <h2>Set Rank</h2>
+    <form action="/set_rank/{{ mafia_name }}" method="POST">
+        <input type="text" name="rank" placeholder="Rank (e.g. Boss, Soldier)" required><br>
+        <button type="submit">Set Rank</button>
+    </form>
+
+</body>
+</html>
