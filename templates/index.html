@@ -129,15 +129,16 @@
         {% endwith %}
 
         <!-- Message posting form -->
-        <form method="POST">
-            <textarea name="message" placeholder="Enter your message" required></textarea><br><br>
+        <form method="POST" enctype="multipart/form-data">
+            <textarea name="message" placeholder="Enter your message"></textarea><br><br>
+            <input type="file" name="image" accept="image/*"><br><br>
             <button type="submit">Post</button>
-        </form>
+        </form>        
 
         <!-- Display messages -->
         <div id="messagesContainer">
             {% for msg in messages %}
-                <div class="message">
+                <div class="message"><div class="message">
                     <!-- Display message with username and mafia info -->
                     <p>
                         <span class="user-info">
@@ -149,8 +150,16 @@
                             {% endif %}
                         </span>: {{ msg.message }}
                     </p>
+                
+                    <!-- Display the uploaded image if it exists -->
+                    {% if msg.image_url %}
+                        <img src="{{ url_for('static', filename='uploads/' + msg.image_url) }}" 
+                             alt="User Uploaded Image" 
+                             style="max-width: 100%; height: auto; margin-top: 10px; border-radius: 5px; border: 1px solid #ccc;">
+                    {% endif %}
+                
                     <p><small class="message-time">Posted by {{ msg.ip }} at {{ msg.timestamp }}</small></p>
-
+                
                     {% if request.remote_addr in admin_ips %}
                         <!-- Admin controls for deleting or banning messages -->
                         <div class="message-controls">
@@ -162,7 +171,7 @@
                             </form>
                         </div>
                     {% endif %}
-                </div>
+                </div>                
             {% endfor %}
         </div>
 
